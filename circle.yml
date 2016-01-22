@@ -1,0 +1,13 @@
+dependencies:
+  pre:
+    - "curl -s -L http://dynamodb-local.s3-website-us-west-2.amazonaws.com/dynamodb_local_latest.tar.gz | tar xz"
+    - "java -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -sharedDb -inMemory -port 4567":
+        background: true
+    - go get -u github.com/jstemmer/go-junit-report
+
+test:
+  pre:
+    - mkdir -p $CIRCLE_TEST_REPORTS/golang
+
+  override:
+    - go test -v -race ./... | tee /dev/tty | go-junit-report > $CIRCLE_TEST_REPORTS/golang/junit.xml

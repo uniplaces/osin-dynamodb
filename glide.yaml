@@ -1,0 +1,9 @@
+package: .
+import:
+- package: github.com/aws/aws-sdk-go
+  subpackages:
+  - /service/dynamodb
+- package: github.com/RangelReale/osin
+- package: github.com/stretchr/testify
+  subpackages:
+  - /assert
