@@ -10,4 +10,4 @@ test:
     - mkdir -p $CIRCLE_TEST_REPORTS/golang
 
   override:
-    - go test -v -race ./... | tee /dev/tty | go-junit-report > $CIRCLE_TEST_REPORTS/golang/junit.xml
+    - (set -o pipefail; go test -v -race ./... | tee /dev/tty | go-junit-report > $CIRCLE_TEST_REPORTS/golang/junit.xml)
