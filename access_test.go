@@ -11,7 +11,7 @@ import (
 
 func TestAccessAuthorizationCode(t *testing.T) {
 	t.Parallel()
-	storageConfig := createStorageConfig("TestAccessAuthorizationCode")
+	storageConfig := CreateStorageConfig("TestAccessAuthorizationCode")
 	svc := createDynamoDB()
 	storage := New(svc, storageConfig)
 	err := storage.CreateSchema()
@@ -82,7 +82,7 @@ func TestAccessAuthorizationCode(t *testing.T) {
 
 func TestAccessRefreshToken(t *testing.T) {
 	t.Parallel()
-	storageConfig := createStorageConfig("TestAccessRefreshToken")
+	storageConfig := CreateStorageConfig("TestAccessRefreshToken")
 	svc := createDynamoDB()
 	storage := New(svc, storageConfig)
 	err := storage.CreateSchema()
@@ -152,7 +152,7 @@ func TestAccessRefreshToken(t *testing.T) {
 
 func TestAccessPassword(t *testing.T) {
 	t.Parallel()
-	storageConfig := createStorageConfig("TestAccessPassword")
+	storageConfig := CreateStorageConfig("TestAccessPassword")
 	svc := createDynamoDB()
 	storage := New(svc, storageConfig)
 	err := storage.CreateSchema()
@@ -212,7 +212,7 @@ func TestAccessPassword(t *testing.T) {
 
 func TestAccessClientCredentials(t *testing.T) {
 	t.Parallel()
-	storageConfig := createStorageConfig("TestAccessClientCredentials")
+	storageConfig := CreateStorageConfig("TestAccessClientCredentials")
 	svc := createDynamoDB()
 	storage := New(svc, storageConfig)
 	err := storage.CreateSchema()

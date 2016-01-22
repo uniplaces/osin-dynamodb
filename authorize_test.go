@@ -11,7 +11,7 @@ import (
 
 func TestAuthorizeCode(t *testing.T) {
 	t.Parallel()
-	storageConfig := createStorageConfig("TestAuthorizeCode")
+	storageConfig := CreateStorageConfig("TestAuthorizeCode")
 	svc := createDynamoDB()
 	storage := New(svc, storageConfig)
 	err := storage.CreateSchema()
@@ -73,7 +73,7 @@ func TestAuthorizeCode(t *testing.T) {
 
 func TestAuthorizeToken(t *testing.T) {
 	t.Parallel()
-	storageConfig := createStorageConfig("TestAuthorizeToken")
+	storageConfig := CreateStorageConfig("TestAuthorizeToken")
 	svc := createDynamoDB()
 	storage := New(svc, storageConfig)
 	err := storage.CreateSchema()

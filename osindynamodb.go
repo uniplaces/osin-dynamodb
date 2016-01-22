@@ -6,6 +6,7 @@ import (
 	"github.com/RangelReale/osin"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"time"
 )
 
 type StorageConfig struct {
@@ -183,12 +184,12 @@ func createTableRefresh(db *dynamodb.DynamoDB, tableName string) error {
 	return nil
 }
 
-// @todo
+// Clone the storage if needed. Has no effect with this library, it's only to satisfy interface.
 func (self *Storage) Clone() osin.Storage {
 	return self
 }
 
-// @todo
+// Close the resources the Storage potentially holds. Has no effect with this library, it's only to satisfy interface.
 func (self *Storage) Close() {
 }
 
@@ -219,7 +220,7 @@ func (self *Storage) CreateClient(client osin.Client) error {
 	return nil
 }
 
-// @todo
+// GetClient loads the client by id (client_id)
 func (self *Storage) GetClient(id string) (osin.Client, error) {
 	var client *osin.DefaultClient
 
@@ -250,7 +251,7 @@ func (self *Storage) GetClient(id string) (osin.Client, error) {
 	return client, nil
 }
 
-// @todo
+// SaveAuthorize saves authorize data.
 func (self *Storage) SaveAuthorize(authorizeData *osin.AuthorizeData) error {
 	data, err := json.Marshal(authorizeData)
 	if err != nil {
@@ -275,7 +276,9 @@ func (self *Storage) SaveAuthorize(authorizeData *osin.AuthorizeData) error {
 	return nil
 }
 
-// @todo
+// LoadAuthorize looks up AuthorizeData by a code.
+// Client information is loaded together.
+// Can return error if expired.
 func (self *Storage) LoadAuthorize(code string) (authorizeData *osin.AuthorizeData, err error) {
 	params := &dynamodb.GetItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
@@ -303,15 +306,21 @@ func (self *Storage) LoadAuthorize(code string) (authorizeData *osin.AuthorizeDa
 	if err != nil {
 		return nil, err
 	}
+
+	if authorizeData.ExpireAt().Before(time.Now()) {
+		return nil, fmt.Errorf("Token expired at %s.", authorizeData.ExpireAt().String())
+	}
+
 	return authorizeData, nil
 }
 
+// RemoveAuthorize revokes or deletes the authorization code.
 // @todo
 func (self *Storage) RemoveAuthorize(code string) error {
 	return nil
 }
 
-// @todo
+// SaveAccess writes AccessData.
 func (self *Storage) SaveAccess(accessData *osin.AccessData) error {
 	data, err := json.Marshal(accessData)
 	if err != nil {
@@ -340,7 +349,8 @@ func (self *Storage) SaveAccess(accessData *osin.AccessData) error {
 	return nil
 }
 
-// @todo
+// LoadAccess retrieves access data by token. Client information is loaded together.
+// Can return error if expired.
 func (self *Storage) LoadAccess(token string) (accessData *osin.AccessData, err error) {
 	params := &dynamodb.GetItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
@@ -368,10 +378,13 @@ func (self *Storage) LoadAccess(token string) (accessData *osin.AccessData, err 
 	if err != nil {
 		return nil, err
 	}
+	if accessData.ExpireAt().Before(time.Now()) {
+		return nil, fmt.Errorf("Token expired at %s.", accessData.ExpireAt().String())
+	}
 	return accessData, nil
 }
 
-// @todo
+// RemoveAccess revokes or deletes an AccessData.
 func (self *Storage) RemoveAccess(token string) error {
 	params := &dynamodb.DeleteItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
@@ -415,7 +428,8 @@ func (self *Storage) SaveRefresh(accessData *osin.AccessData) error {
 	return nil
 }
 
-// @todo
+// LoadRefresh retrieves refresh AccessData. Client information is loaded together.
+// Can return error if expired.
 func (self *Storage) LoadRefresh(token string) (accessData *osin.AccessData, err error) {
 	params := &dynamodb.GetItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
@@ -443,10 +457,13 @@ func (self *Storage) LoadRefresh(token string) (accessData *osin.AccessData, err
 	if err != nil {
 		return nil, err
 	}
+	if accessData.ExpireAt().Before(time.Now()) {
+		return nil, fmt.Errorf("Token expired at %s.", accessData.ExpireAt().String())
+	}
 	return accessData, nil
 }
 
-// @todo
+// RemoveRefresh revokes or deletes refresh AccessData.
 func (self *Storage) RemoveRefresh(code string) error {
 	return nil
 }
