@@ -12,5 +12,4 @@ test:
 
   override:
     - (set -o pipefail; go test -v -race ./... | tee /dev/tty | go-junit-report > $CIRCLE_TEST_REPORTS/golang/junit.xml)
-    - gocov test -covermode=atomic ./... > $CIRCLE_ARTIFACTS
-
+    - gocov test -covermode=atomic ./... > $CIRCLE_ARTIFACTS/coverage.json
