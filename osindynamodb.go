@@ -9,11 +9,16 @@ import (
 	"time"
 )
 
+type UserData interface {
+	ToAttributeValues() map[string]*dynamodb.AttributeValue
+}
+
 type StorageConfig struct {
 	ClientTable    string
 	AuthorizeTable string
 	AccessTable    string
 	RefreshTable   string
+	CreateUserData func() interface{}
 }
 
 type Storage struct {
@@ -39,6 +44,22 @@ func (self *Storage) CreateSchema() error {
 		return err
 	}
 	if err := createTableRefresh(self.db, self.config.RefreshTable); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (self *Storage) DropSchema() error {
+	if err := deleteTable(self.db, self.config.AccessTable); err != nil {
+		return err
+	}
+	if err := deleteTable(self.db, self.config.AuthorizeTable); err != nil {
+		return err
+	}
+	if err := deleteTable(self.db, self.config.ClientTable); err != nil {
+		return err
+	}
+	if err := deleteTable(self.db, self.config.RefreshTable); err != nil {
 		return err
 	}
 	return nil
@@ -178,6 +199,25 @@ func createTableRefresh(db *dynamodb.DynamoDB, tableName string) error {
 		TableName: aws.String(tableName),
 	}
 	if err := db.WaitUntilTableExists(describeParams); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func deleteTable(db *dynamodb.DynamoDB, tableName string) error {
+	params := &dynamodb.DeleteTableInput{
+		TableName: aws.String(tableName),
+	}
+	_, err := db.DeleteTable(params)
+	if err != nil {
+		return err
+	}
+
+	describeParams := &dynamodb.DescribeTableInput{
+		TableName: aws.String(tableName),
+	}
+	if err := db.WaitUntilTableNotExists(describeParams); err != nil {
 		return err
 	}
 
@@ -326,15 +366,22 @@ func (self *Storage) SaveAccess(accessData *osin.AccessData) error {
 	if err != nil {
 		return err
 	}
-	params := &dynamodb.PutItemInput{
-		Item: map[string]*dynamodb.AttributeValue{
-			"token": {
-				S: aws.String(accessData.AccessToken),
-			},
-			"json": {
-				S: aws.String(string(data)),
-			},
+	items := map[string]*dynamodb.AttributeValue{
+		"token": {
+			S: aws.String(accessData.AccessToken),
 		},
+		"json": {
+			S: aws.String(string(data)),
+		},
+	}
+
+	if userData, ok := accessData.UserData.(UserData); ok {
+		for k, v := range userData.ToAttributeValues() {
+			items[k] = v
+		}
+	}
+	params := &dynamodb.PutItemInput{
+		Item:      items,
 		TableName: aws.String(self.config.AccessTable),
 	}
 
@@ -373,6 +420,9 @@ func (self *Storage) LoadAccess(token string) (accessData *osin.AccessData, err 
 
 	accessData = &osin.AccessData{}
 	accessData.Client = &osin.DefaultClient{}
+	if self.config.CreateUserData != nil {
+		accessData.UserData = self.config.CreateUserData()
+	}
 	data := resp.Item["json"].S
 	err = json.Unmarshal([]byte(*data), &accessData)
 	if err != nil {
