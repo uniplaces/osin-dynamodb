@@ -5,6 +5,7 @@ dependencies:
         background: true
     - go get -u github.com/jstemmer/go-junit-report
     - go get -u github.com/axw/gocov/gocov
+    - go get -u gopkg.in/matm/v1/gocov-html
 
 test:
   pre:
@@ -13,3 +14,4 @@ test:
   override:
     - (set -o pipefail; go test -v -race ./... | tee /dev/tty | go-junit-report > $CIRCLE_TEST_REPORTS/golang/junit.xml)
     - gocov test -covermode=atomic ./... > $CIRCLE_ARTIFACTS/coverage.json
+    - gocov-html $CIRCLE_ARTIFACTS/coverage.json > $CIRCLE_ARTIFACTS/coverage.html
