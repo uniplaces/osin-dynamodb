@@ -16,4 +16,4 @@ test:
     - (set -o pipefail; go test -v -race ./... | tee /dev/tty | go-junit-report > $CIRCLE_TEST_REPORTS/golang/junit.xml)
     - gocov test -covermode=atomic ./... > $CIRCLE_ARTIFACTS/coverage.json
     - gocov-html $CIRCLE_ARTIFACTS/coverage.json > $CIRCLE_ARTIFACTS/coverage.html
-    - goveralls -gocovjson=$CIRCLE_ARTIFACTS/coverage.json -service=circle-ci -repotoken=$COVERALLS_TOKEN
+    - goveralls -gocovdata=$CIRCLE_ARTIFACTS/coverage.json -service=circle-ci -repotoken=$COVERALLS_TOKEN
