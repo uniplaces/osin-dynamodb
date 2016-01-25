@@ -31,6 +31,7 @@ func TestCreateSchema(t *testing.T) {
 	storage := New(svc, storageConfig)
 	err = storage.CreateSchema()
 	assert.Nil(t, err, "%s", err)
+	defer storage.DropSchema()
 }
 
 func TestCreateClient(t *testing.T) {
@@ -41,6 +42,7 @@ func TestCreateClient(t *testing.T) {
 	storage := New(svc, storageConfig)
 	err = storage.CreateSchema()
 	assert.Nil(t, err, "%s", err)
+	defer storage.DropSchema()
 	client := &osin.DefaultClient{
 		Id:     "1234",
 		Secret: "aabbccdd",
