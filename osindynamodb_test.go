@@ -264,7 +264,7 @@ type UserDataTest struct {
 	Username string
 }
 
-func (self UserDataTest) ToAttributeValues() map[string]*dynamodb.AttributeValue {
+func (receiver UserDataTest) ToAttributeValues() map[string]*dynamodb.AttributeValue {
 	return map[string]*dynamodb.AttributeValue{
 		"username": {
 			S: aws.String(receiver.Username),
