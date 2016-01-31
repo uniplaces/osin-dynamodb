@@ -17,29 +17,49 @@ var (
 	ErrTokenExpired      = errors.New("Token expired")
 )
 
-type UserData interface {
-	ToAttributeValues() map[string]*dynamodb.AttributeValue
+// New returns a new DynamoDB storage instance.
+func New(db *dynamodb.DynamoDB, config StorageConfig) *Storage {
+	return &Storage{
+		db:     db,
+		config: config,
+	}
 }
 
-type StorageConfig struct {
-	ClientTable    string
-	AuthorizeTable string
-	AccessTable    string
-	RefreshTable   string
-	CreateUserData func() interface{}
-}
-
+// Storage implements the storage interface for OSIN (https://github.com/RangelReale/osin)
+// with Amazon DynamoDB (https://aws.amazon.com/dynamodb/)
+// using aws-sdk-go (https://github.com/aws/aws-sdk-go).
 type Storage struct {
 	db     *dynamodb.DynamoDB
 	config StorageConfig
 }
 
-func New(db *dynamodb.DynamoDB, config StorageConfig) *Storage {
+// StorageConfig allows to pass configuration to Storage on initialization
+type StorageConfig struct {
+	// ClientTable is the name of table for clients
+	ClientTable string
+	// AuthorizeTable is the name of table for authorization codes
+	AuthorizeTable string
+	// AccessTable is the name of table for access tokens
+	AccessTable string
+	// RefreshTable is the name of table for refresh tokens
+	RefreshTable string
+	// CreateUserData is a function that allows you to create struct
+	// to which osin.AccessData.UserData will be json.Unmarshaled.
+	// Example:
+	// struct AppUserData{
+	// 	Username string
+	// }
+	// func() interface{} {
+	// 	return &AppUserData{}
+	// }
+	CreateUserData func() interface{}
+}
 
-	return &Storage{
-		db:     db,
-		config: config,
-	}
+// UserData is an interface that allows you to store UserData values
+// as DynamoDB attributes in AccessTable and RefreshTable
+type UserData interface {
+	// ToAttributeValues lists user data as attribute values for DynamoDB table
+	ToAttributeValues() map[string]*dynamodb.AttributeValue
 }
 
 // CreateSchema initiates db with basic schema layout
@@ -456,15 +476,22 @@ func (self *Storage) SaveRefresh(accessData *osin.AccessData) error {
 	if err != nil {
 		return err
 	}
-	params := &dynamodb.PutItemInput{
-		Item: map[string]*dynamodb.AttributeValue{
-			"token": {
-				S: aws.String(accessData.RefreshToken),
-			},
-			"json": {
-				S: aws.String(string(data)),
-			},
+	items := map[string]*dynamodb.AttributeValue{
+		"token": {
+			S: aws.String(accessData.RefreshToken),
 		},
+		"json": {
+			S: aws.String(string(data)),
+		},
+	}
+
+	if userData, ok := accessData.UserData.(UserData); ok {
+		for k, v := range userData.ToAttributeValues() {
+			items[k] = v
+		}
+	}
+	params := &dynamodb.PutItemInput{
+		Item:      items,
 		TableName: aws.String(self.config.RefreshTable),
 	}
 
@@ -529,6 +556,7 @@ func (self *Storage) RemoveRefresh(token string) error {
 	return nil
 }
 
+// CreateStorageConfig prefixes all table names and returns StorageConfig
 func CreateStorageConfig(prefix string) StorageConfig {
 	return StorageConfig{
 		AccessTable:    prefix + "access",
