@@ -267,7 +267,7 @@ type UserDataTest struct {
 func (self UserDataTest) ToAttributeValues() map[string]*dynamodb.AttributeValue {
 	return map[string]*dynamodb.AttributeValue{
 		"username": {
-			S: aws.String(reciever.Username),
+			S: aws.String(receiver.Username),
 		},
 	}
 }
