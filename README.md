@@ -10,7 +10,8 @@ This package implements the storage for [OSIN](https://github.com/RangelReale/os
 ## Installation
 
 Install library with `go get github.com/uniplaces/osin-dynamodb`
-or with `glide get github.com/uniplaces/osin-dynamodb` is you use [glide](https://github.com/Masterminds/glide)
+
+or if you use [glide](https://github.com/Masterminds/glide) with `glide get github.com/uniplaces/osin-dynamodb`
 
 ## Usage
 
