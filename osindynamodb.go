@@ -212,7 +212,7 @@ func deleteTable(db *dynamodb.DynamoDB, tableName string) error {
 
 // Clone the storage if needed. Has no effect with this library, it's only to satisfy interface.
 func (receiver *Storage) Clone() osin.Storage {
-	return self
+	return receiver
 }
 
 // Close the resources the Storage potentially holds. Has no effect with this library, it's only to satisfy interface.
