@@ -2,11 +2,19 @@ package osindynamodb
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"github.com/RangelReale/osin"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"time"
+)
+
+var (
+	ErrClientNotFound    = errors.New("Client not found")
+	ErrAuthorizeNotFound = errors.New("Authorize not found")
+	ErrAccessNotFound    = errors.New("Access not found")
+	ErrRefreshNotFound   = errors.New("Refresh not found")
+	ErrTokenExpired      = errors.New("Token expired")
 )
 
 type UserData interface {
@@ -27,176 +35,129 @@ type Storage struct {
 }
 
 func New(db *dynamodb.DynamoDB, config StorageConfig) *Storage {
+
 	return &Storage{
 		db:     db,
 		config: config,
 	}
 }
 
+// CreateSchema initiates db with basic schema layout
+// This is not a part of interface but can be useful for initiating basic schema and for tests
 func (self *Storage) CreateSchema() error {
-	if err := createTableAccess(self.db, self.config.AccessTable); err != nil {
-		return err
+	createParams := []*dynamodb.CreateTableInput{
+		&dynamodb.CreateTableInput{
+			TableName: aws.String(self.config.AccessTable),
+			AttributeDefinitions: []*dynamodb.AttributeDefinition{
+				{
+					AttributeName: aws.String("token"),
+					AttributeType: aws.String(dynamodb.ScalarAttributeTypeS),
+				},
+			},
+			KeySchema: []*dynamodb.KeySchemaElement{
+				{
+					AttributeName: aws.String("token"),
+					KeyType:       aws.String("HASH"),
+				},
+			},
+			ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
+				ReadCapacityUnits:  aws.Int64(1),
+				WriteCapacityUnits: aws.Int64(1),
+			},
+		},
+		&dynamodb.CreateTableInput{
+			TableName: aws.String(self.config.AuthorizeTable),
+			AttributeDefinitions: []*dynamodb.AttributeDefinition{
+				{
+					AttributeName: aws.String("code"),
+					AttributeType: aws.String(dynamodb.ScalarAttributeTypeS),
+				},
+			},
+			KeySchema: []*dynamodb.KeySchemaElement{
+				{
+					AttributeName: aws.String("code"),
+					KeyType:       aws.String("HASH"),
+				},
+			},
+			ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
+				ReadCapacityUnits:  aws.Int64(1),
+				WriteCapacityUnits: aws.Int64(1),
+			},
+		},
+		&dynamodb.CreateTableInput{
+			TableName: aws.String(self.config.ClientTable),
+			AttributeDefinitions: []*dynamodb.AttributeDefinition{
+				{
+					AttributeName: aws.String("id"),
+					AttributeType: aws.String(dynamodb.ScalarAttributeTypeS),
+				},
+			},
+			KeySchema: []*dynamodb.KeySchemaElement{
+				{
+					AttributeName: aws.String("id"),
+					KeyType:       aws.String("HASH"),
+				},
+			},
+			ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
+				ReadCapacityUnits:  aws.Int64(1),
+				WriteCapacityUnits: aws.Int64(1),
+			},
+		},
+		&dynamodb.CreateTableInput{
+			TableName: aws.String(self.config.RefreshTable),
+			AttributeDefinitions: []*dynamodb.AttributeDefinition{
+				{
+					AttributeName: aws.String("token"),
+					AttributeType: aws.String(dynamodb.ScalarAttributeTypeS),
+				},
+			},
+			KeySchema: []*dynamodb.KeySchemaElement{
+				{
+					AttributeName: aws.String("token"),
+					KeyType:       aws.String("HASH"),
+				},
+			},
+			ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
+				ReadCapacityUnits:  aws.Int64(1),
+				WriteCapacityUnits: aws.Int64(1),
+			},
+		},
 	}
-	if err := createTableAuthorize(self.db, self.config.AuthorizeTable); err != nil {
-		return err
+
+	for i := range createParams {
+		if err := createTable(self.db, createParams[i]); err != nil {
+			return err
+		}
 	}
-	if err := createTableClient(self.db, self.config.ClientTable); err != nil {
-		return err
-	}
-	if err := createTableRefresh(self.db, self.config.RefreshTable); err != nil {
-		return err
-	}
+
 	return nil
 }
 
+// DropSchema drops all tables
+// This is not a part of interface but can be useful in tests
 func (self *Storage) DropSchema() error {
-	if err := deleteTable(self.db, self.config.AccessTable); err != nil {
-		return err
+	tables := []string{
+		self.config.AccessTable,
+		self.config.AuthorizeTable,
+		self.config.RefreshTable,
+		self.config.ClientTable,
 	}
-	if err := deleteTable(self.db, self.config.AuthorizeTable); err != nil {
-		return err
-	}
-	if err := deleteTable(self.db, self.config.ClientTable); err != nil {
-		return err
-	}
-	if err := deleteTable(self.db, self.config.RefreshTable); err != nil {
-		return err
+	for i := range tables {
+		if err := deleteTable(self.db, tables[i]); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func createTableAccess(db *dynamodb.DynamoDB, tableName string) error {
-	createParams := &dynamodb.CreateTableInput{
-		TableName: aws.String(tableName),
-		AttributeDefinitions: []*dynamodb.AttributeDefinition{
-			{
-				AttributeName: aws.String("token"),
-				AttributeType: aws.String(dynamodb.ScalarAttributeTypeS),
-			},
-		},
-		KeySchema: []*dynamodb.KeySchemaElement{
-			{
-				AttributeName: aws.String("token"),
-				KeyType:       aws.String("HASH"),
-			},
-		},
-		ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
-			ReadCapacityUnits:  aws.Int64(1),
-			WriteCapacityUnits: aws.Int64(1),
-		},
-	}
+func createTable(db *dynamodb.DynamoDB, createParams *dynamodb.CreateTableInput) error {
 	_, err := db.CreateTable(createParams)
 	if err != nil {
 		return err
 	}
 
 	describeParams := &dynamodb.DescribeTableInput{
-		TableName: aws.String(tableName),
-	}
-	if err := db.WaitUntilTableExists(describeParams); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func createTableAuthorize(db *dynamodb.DynamoDB, tableName string) error {
-	createParams := &dynamodb.CreateTableInput{
-		TableName: aws.String(tableName),
-		AttributeDefinitions: []*dynamodb.AttributeDefinition{
-			{
-				AttributeName: aws.String("code"),
-				AttributeType: aws.String(dynamodb.ScalarAttributeTypeS),
-			},
-		},
-		KeySchema: []*dynamodb.KeySchemaElement{
-			{
-				AttributeName: aws.String("code"),
-				KeyType:       aws.String("HASH"),
-			},
-		},
-		ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
-			ReadCapacityUnits:  aws.Int64(1),
-			WriteCapacityUnits: aws.Int64(1),
-		},
-	}
-	_, err := db.CreateTable(createParams)
-	if err != nil {
-		return err
-	}
-
-	describeParams := &dynamodb.DescribeTableInput{
-		TableName: aws.String(tableName),
-	}
-	if err := db.WaitUntilTableExists(describeParams); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func createTableClient(db *dynamodb.DynamoDB, tableName string) error {
-	createParams := &dynamodb.CreateTableInput{
-		TableName: aws.String(tableName),
-		AttributeDefinitions: []*dynamodb.AttributeDefinition{
-			{
-				AttributeName: aws.String("id"),
-				AttributeType: aws.String(dynamodb.ScalarAttributeTypeS),
-			},
-		},
-		KeySchema: []*dynamodb.KeySchemaElement{
-			{
-				AttributeName: aws.String("id"),
-				KeyType:       aws.String("HASH"),
-			},
-		},
-		ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
-			ReadCapacityUnits:  aws.Int64(1),
-			WriteCapacityUnits: aws.Int64(1),
-		},
-	}
-	_, err := db.CreateTable(createParams)
-	if err != nil {
-		return err
-	}
-
-	describeParams := &dynamodb.DescribeTableInput{
-		TableName: aws.String(tableName),
-	}
-	if err := db.WaitUntilTableExists(describeParams); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func createTableRefresh(db *dynamodb.DynamoDB, tableName string) error {
-	createParams := &dynamodb.CreateTableInput{
-		TableName: aws.String(tableName),
-		AttributeDefinitions: []*dynamodb.AttributeDefinition{
-			{
-				AttributeName: aws.String("token"),
-				AttributeType: aws.String(dynamodb.ScalarAttributeTypeS),
-			},
-		},
-		KeySchema: []*dynamodb.KeySchemaElement{
-			{
-				AttributeName: aws.String("token"),
-				KeyType:       aws.String("HASH"),
-			},
-		},
-		ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
-			ReadCapacityUnits:  aws.Int64(1),
-			WriteCapacityUnits: aws.Int64(1),
-		},
-	}
-	_, err := db.CreateTable(createParams)
-	if err != nil {
-		return err
-	}
-
-	describeParams := &dynamodb.DescribeTableInput{
-		TableName: aws.String(tableName),
+		TableName: aws.String(*createParams.TableName),
 	}
 	if err := db.WaitUntilTableExists(describeParams); err != nil {
 		return err
@@ -233,8 +194,9 @@ func (self *Storage) Clone() osin.Storage {
 func (self *Storage) Close() {
 }
 
-// @todo
-// NOT A PART OF INTERFACE
+// CreateClient adds new client.
+// This is not a part of interface and as so, it's never used in osin flow.
+// However can be really usefull for applications to add new clients.
 func (self *Storage) CreateClient(client osin.Client) error {
 	data, err := json.Marshal(client)
 	if err != nil {
@@ -280,7 +242,7 @@ func (self *Storage) GetClient(id string) (osin.Client, error) {
 	}
 
 	if len(resp.Item) == 0 {
-		return nil, fmt.Errorf("Client not found")
+		return nil, ErrClientNotFound
 	}
 
 	data := resp.Item["json"].S
@@ -289,6 +251,27 @@ func (self *Storage) GetClient(id string) (osin.Client, error) {
 		return nil, err
 	}
 	return client, nil
+}
+
+// RemoveClient revokes or deletes client.
+// This is not a part of interface and as so, it's never used in osin flow.
+// However can be really usefull for applications to remove or revoke clients.
+func (self *Storage) RemoveClient(id string) error {
+	params := &dynamodb.DeleteItemInput{
+		TableName: aws.String(self.config.ClientTable),
+		Key: map[string]*dynamodb.AttributeValue{
+			"id": {
+				S: aws.String(id),
+			},
+		},
+	}
+
+	_, err := self.db.DeleteItem(params)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // SaveAuthorize saves authorize data.
@@ -336,7 +319,7 @@ func (self *Storage) LoadAuthorize(code string) (authorizeData *osin.AuthorizeDa
 	}
 
 	if len(resp.Item) == 0 {
-		return nil, fmt.Errorf("Authorize not found")
+		return nil, ErrAuthorizeNotFound
 	}
 
 	authorizeData = &osin.AuthorizeData{}
@@ -348,15 +331,27 @@ func (self *Storage) LoadAuthorize(code string) (authorizeData *osin.AuthorizeDa
 	}
 
 	if authorizeData.ExpireAt().Before(time.Now()) {
-		return nil, fmt.Errorf("Token expired at %s.", authorizeData.ExpireAt().String())
+		return nil, ErrTokenExpired
 	}
 
 	return authorizeData, nil
 }
 
 // RemoveAuthorize revokes or deletes the authorization code.
-// @todo
 func (self *Storage) RemoveAuthorize(code string) error {
+	params := &dynamodb.DeleteItemInput{
+		Key: map[string]*dynamodb.AttributeValue{
+			"code": {
+				S: aws.String(code),
+			},
+		},
+		TableName: aws.String(self.config.AuthorizeTable),
+	}
+
+	if _, err := self.db.DeleteItem(params); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -415,7 +410,7 @@ func (self *Storage) LoadAccess(token string) (accessData *osin.AccessData, err 
 	}
 
 	if len(resp.Item) == 0 {
-		return nil, fmt.Errorf("Access not found")
+		return nil, ErrAccessNotFound
 	}
 
 	accessData = &osin.AccessData{}
@@ -429,7 +424,7 @@ func (self *Storage) LoadAccess(token string) (accessData *osin.AccessData, err 
 		return nil, err
 	}
 	if accessData.ExpireAt().Before(time.Now()) {
-		return nil, fmt.Errorf("Token expired at %s.", accessData.ExpireAt().String())
+		return nil, ErrTokenExpired
 	}
 	return accessData, nil
 }
@@ -452,8 +447,10 @@ func (self *Storage) RemoveAccess(token string) error {
 	return nil
 }
 
-// @todo
-// NOT A PART OF INTERFACE
+// SaveRefresh writes AccessData for refresh token
+// This method is not a part of interface and as so, it's never used in osin flow.
+// This method is used internally by SaveAccess(accessData *osin.AccessData)
+// and can be usefull for testing
 func (self *Storage) SaveRefresh(accessData *osin.AccessData) error {
 	data, err := json.Marshal(accessData)
 	if err != nil {
@@ -497,7 +494,7 @@ func (self *Storage) LoadRefresh(token string) (accessData *osin.AccessData, err
 	}
 
 	if len(resp.Item) == 0 {
-		return nil, fmt.Errorf("Refresh not found")
+		return nil, ErrRefreshNotFound
 	}
 
 	accessData = &osin.AccessData{}
@@ -508,13 +505,27 @@ func (self *Storage) LoadRefresh(token string) (accessData *osin.AccessData, err
 		return nil, err
 	}
 	if accessData.ExpireAt().Before(time.Now()) {
-		return nil, fmt.Errorf("Token expired at %s.", accessData.ExpireAt().String())
+		return nil, ErrTokenExpired
 	}
 	return accessData, nil
 }
 
 // RemoveRefresh revokes or deletes refresh AccessData.
-func (self *Storage) RemoveRefresh(code string) error {
+func (self *Storage) RemoveRefresh(token string) error {
+	params := &dynamodb.DeleteItemInput{
+		TableName: aws.String(self.config.RefreshTable),
+		Key: map[string]*dynamodb.AttributeValue{
+			"token": {
+				S: aws.String(token),
+			},
+		},
+	}
+
+	_, err := self.db.DeleteItem(params)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
