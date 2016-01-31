@@ -100,21 +100,21 @@ func TestAccess(t *testing.T) {
 	// We need to convert it to json as pointers inside structs are different
 	// and assert library doesn't provide recursive value comparison for structs
 	assert.Nil(t, err, "%s", err)
-	gotJson, err := json.Marshal(got)
+	gotJSON, err := json.Marshal(got)
 	assert.Nil(t, err, "%s", err)
-	expectedJson, err := json.Marshal(accessData)
+	expectedJSON, err := json.Marshal(accessData)
 	assert.Nil(t, err, "%s", err)
-	assert.JSONEq(t, string(expectedJson), string(gotJson))
+	assert.JSONEq(t, string(expectedJSON), string(gotJSON))
 
 	got, err = storage.LoadRefresh(accessData.RefreshToken)
 	// We need to convert it to json as pointers inside structs are different
 	// and assert library doesn't provide recursive value comparison for structs
 	assert.Nil(t, err, "%s", err)
-	gotJson, err = json.Marshal(got)
+	gotJSON, err = json.Marshal(got)
 	assert.Nil(t, err, "%s", err)
-	expectedJson, err = json.Marshal(accessData)
+	expectedJSON, err = json.Marshal(accessData)
 	assert.Nil(t, err, "%s", err)
-	assert.JSONEq(t, string(expectedJson), string(gotJson))
+	assert.JSONEq(t, string(expectedJSON), string(gotJSON))
 
 	err = storage.RemoveAccess(accessData.AccessToken)
 	assert.Nil(t, err, "%s", err)
@@ -127,11 +127,11 @@ func TestAccess(t *testing.T) {
 	// We need to convert it to json as pointers inside structs are different
 	// and assert library doesn't provide recursive value comparison for structs
 	assert.Nil(t, err, "%s", err)
-	gotJson, err = json.Marshal(got)
+	gotJSON, err = json.Marshal(got)
 	assert.Nil(t, err, "%s", err)
-	expectedJson, err = json.Marshal(accessData)
+	expectedJSON, err = json.Marshal(accessData)
 	assert.Nil(t, err, "%s", err)
-	assert.JSONEq(t, string(expectedJson), string(gotJson))
+	assert.JSONEq(t, string(expectedJSON), string(gotJSON))
 
 	// let's try with expired token
 	accessData.CreatedAt = accessData.CreatedAt.Add(-time.Duration(accessData.ExpiresIn) * time.Second)
@@ -180,11 +180,11 @@ func TestRefresh(t *testing.T) {
 	// We need to convert it to json as pointers inside structs are different
 	// and assert library doesn't provide recursive value comparison for structs
 	assert.Nil(t, err, "%s", err)
-	gotJson, err := json.Marshal(got)
+	gotJSON, err := json.Marshal(got)
 	assert.Nil(t, err, "%s", err)
-	expectedJson, err := json.Marshal(accessData)
+	expectedJSON, err := json.Marshal(accessData)
 	assert.Nil(t, err, "%s", err)
-	assert.JSONEq(t, string(expectedJson), string(gotJson))
+	assert.JSONEq(t, string(expectedJSON), string(gotJSON))
 
 	err = storage.RemoveRefresh(accessData.RefreshToken)
 	assert.Nil(t, err, "%s", err)
@@ -237,11 +237,11 @@ func TestAuthorize(t *testing.T) {
 	// We need to convert it to json as pointers inside structs are different
 	// and assert library doesn't provide recursive value comparison for structs
 	assert.Nil(t, err, "%s", err)
-	gotJson, err := json.Marshal(got)
+	gotJSON, err := json.Marshal(got)
 	assert.Nil(t, err, "%s", err)
-	expectedJson, err := json.Marshal(authorizeData)
+	expectedJSON, err := json.Marshal(authorizeData)
 	assert.Nil(t, err, "%s", err)
-	assert.JSONEq(t, string(expectedJson), string(gotJson))
+	assert.JSONEq(t, string(expectedJSON), string(gotJSON))
 
 	err = storage.RemoveAuthorize(authorizeData.Code)
 	assert.Nil(t, err, "%s", err)
@@ -267,7 +267,7 @@ type UserDataTest struct {
 func (self UserDataTest) ToAttributeValues() map[string]*dynamodb.AttributeValue {
 	return map[string]*dynamodb.AttributeValue{
 		"username": {
-			S: aws.String(self.Username),
+			S: aws.String(reciever.Username),
 		},
 	}
 }

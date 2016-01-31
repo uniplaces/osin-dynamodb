@@ -10,11 +10,16 @@ import (
 )
 
 var (
-	ErrClientNotFound    = errors.New("Client not found")
+	// ErrClientNotFound is returned by GetClient if client was not found
+	ErrClientNotFound = errors.New("Client not found")
+	// ErrAuthorizeNotFound is returned by LoadAuthorize if authorization code was not found
 	ErrAuthorizeNotFound = errors.New("Authorize not found")
-	ErrAccessNotFound    = errors.New("Access not found")
-	ErrRefreshNotFound   = errors.New("Refresh not found")
-	ErrTokenExpired      = errors.New("Token expired")
+	// ErrAccessNotFound is returned by LoadAccess if access token was not found
+	ErrAccessNotFound = errors.New("Access not found")
+	// ErrRefreshNotFound is returned by LoadRefresh if refresh token was not found
+	ErrRefreshNotFound = errors.New("Refresh not found")
+	// ErrTokenExpired is returned by LoadAccess, LoadAuthorize or LoadRefresh if token or code expired
+	ErrTokenExpired = errors.New("Token expired")
 )
 
 // New returns a new DynamoDB storage instance.
@@ -64,10 +69,10 @@ type UserData interface {
 
 // CreateSchema initiates db with basic schema layout
 // This is not a part of interface but can be useful for initiating basic schema and for tests
-func (self *Storage) CreateSchema() error {
+func (reciever *Storage) CreateSchema() error {
 	createParams := []*dynamodb.CreateTableInput{
 		&dynamodb.CreateTableInput{
-			TableName: aws.String(self.config.AccessTable),
+			TableName: aws.String(reciever.config.AccessTable),
 			AttributeDefinitions: []*dynamodb.AttributeDefinition{
 				{
 					AttributeName: aws.String("token"),
@@ -86,7 +91,7 @@ func (self *Storage) CreateSchema() error {
 			},
 		},
 		&dynamodb.CreateTableInput{
-			TableName: aws.String(self.config.AuthorizeTable),
+			TableName: aws.String(reciever.config.AuthorizeTable),
 			AttributeDefinitions: []*dynamodb.AttributeDefinition{
 				{
 					AttributeName: aws.String("code"),
@@ -105,7 +110,7 @@ func (self *Storage) CreateSchema() error {
 			},
 		},
 		&dynamodb.CreateTableInput{
-			TableName: aws.String(self.config.ClientTable),
+			TableName: aws.String(reciever.config.ClientTable),
 			AttributeDefinitions: []*dynamodb.AttributeDefinition{
 				{
 					AttributeName: aws.String("id"),
@@ -124,7 +129,7 @@ func (self *Storage) CreateSchema() error {
 			},
 		},
 		&dynamodb.CreateTableInput{
-			TableName: aws.String(self.config.RefreshTable),
+			TableName: aws.String(reciever.config.RefreshTable),
 			AttributeDefinitions: []*dynamodb.AttributeDefinition{
 				{
 					AttributeName: aws.String("token"),
@@ -145,7 +150,7 @@ func (self *Storage) CreateSchema() error {
 	}
 
 	for i := range createParams {
-		if err := createTable(self.db, createParams[i]); err != nil {
+		if err := createTable(reciever.db, createParams[i]); err != nil {
 			return err
 		}
 	}
@@ -155,15 +160,15 @@ func (self *Storage) CreateSchema() error {
 
 // DropSchema drops all tables
 // This is not a part of interface but can be useful in tests
-func (self *Storage) DropSchema() error {
+func (reciever *Storage) DropSchema() error {
 	tables := []string{
-		self.config.AccessTable,
-		self.config.AuthorizeTable,
-		self.config.RefreshTable,
-		self.config.ClientTable,
+		reciever.config.AccessTable,
+		reciever.config.AuthorizeTable,
+		reciever.config.RefreshTable,
+		reciever.config.ClientTable,
 	}
 	for i := range tables {
-		if err := deleteTable(self.db, tables[i]); err != nil {
+		if err := deleteTable(reciever.db, tables[i]); err != nil {
 			return err
 		}
 	}
@@ -206,18 +211,18 @@ func deleteTable(db *dynamodb.DynamoDB, tableName string) error {
 }
 
 // Clone the storage if needed. Has no effect with this library, it's only to satisfy interface.
-func (self *Storage) Clone() osin.Storage {
+func (reciever *Storage) Clone() osin.Storage {
 	return self
 }
 
 // Close the resources the Storage potentially holds. Has no effect with this library, it's only to satisfy interface.
-func (self *Storage) Close() {
+func (reciever *Storage) Close() {
 }
 
 // CreateClient adds new client.
 // This is not a part of interface and as so, it's never used in osin flow.
 // However can be really usefull for applications to add new clients.
-func (self *Storage) CreateClient(client osin.Client) error {
+func (reciever *Storage) CreateClient(client osin.Client) error {
 	data, err := json.Marshal(client)
 	if err != nil {
 		return err
@@ -232,10 +237,10 @@ func (self *Storage) CreateClient(client osin.Client) error {
 				S: aws.String(string(data)),
 			},
 		},
-		TableName: aws.String(self.config.ClientTable),
+		TableName: aws.String(reciever.config.ClientTable),
 	}
 
-	if _, err := self.db.PutItem(params); err != nil {
+	if _, err := reciever.db.PutItem(params); err != nil {
 		return err
 	}
 
@@ -243,7 +248,7 @@ func (self *Storage) CreateClient(client osin.Client) error {
 }
 
 // GetClient loads the client by id (client_id)
-func (self *Storage) GetClient(id string) (osin.Client, error) {
+func (reciever *Storage) GetClient(id string) (osin.Client, error) {
 	var client *osin.DefaultClient
 
 	params := &dynamodb.GetItemInput{
@@ -253,10 +258,10 @@ func (self *Storage) GetClient(id string) (osin.Client, error) {
 			},
 		},
 		ProjectionExpression: aws.String("id, json"),
-		TableName:            aws.String(self.config.ClientTable),
+		TableName:            aws.String(reciever.config.ClientTable),
 	}
 
-	resp, err := self.db.GetItem(params)
+	resp, err := reciever.db.GetItem(params)
 	if err != nil {
 		return nil, err
 	}
@@ -276,9 +281,9 @@ func (self *Storage) GetClient(id string) (osin.Client, error) {
 // RemoveClient revokes or deletes client.
 // This is not a part of interface and as so, it's never used in osin flow.
 // However can be really usefull for applications to remove or revoke clients.
-func (self *Storage) RemoveClient(id string) error {
+func (reciever *Storage) RemoveClient(id string) error {
 	params := &dynamodb.DeleteItemInput{
-		TableName: aws.String(self.config.ClientTable),
+		TableName: aws.String(reciever.config.ClientTable),
 		Key: map[string]*dynamodb.AttributeValue{
 			"id": {
 				S: aws.String(id),
@@ -286,7 +291,7 @@ func (self *Storage) RemoveClient(id string) error {
 		},
 	}
 
-	_, err := self.db.DeleteItem(params)
+	_, err := reciever.db.DeleteItem(params)
 	if err != nil {
 		return err
 	}
@@ -295,7 +300,7 @@ func (self *Storage) RemoveClient(id string) error {
 }
 
 // SaveAuthorize saves authorize data.
-func (self *Storage) SaveAuthorize(authorizeData *osin.AuthorizeData) error {
+func (reciever *Storage) SaveAuthorize(authorizeData *osin.AuthorizeData) error {
 	data, err := json.Marshal(authorizeData)
 	if err != nil {
 		return err
@@ -309,10 +314,10 @@ func (self *Storage) SaveAuthorize(authorizeData *osin.AuthorizeData) error {
 				S: aws.String(string(data)),
 			},
 		},
-		TableName: aws.String(self.config.AuthorizeTable),
+		TableName: aws.String(reciever.config.AuthorizeTable),
 	}
 
-	if _, err := self.db.PutItem(params); err != nil {
+	if _, err := reciever.db.PutItem(params); err != nil {
 		return err
 	}
 
@@ -322,7 +327,7 @@ func (self *Storage) SaveAuthorize(authorizeData *osin.AuthorizeData) error {
 // LoadAuthorize looks up AuthorizeData by a code.
 // Client information is loaded together.
 // Can return error if expired.
-func (self *Storage) LoadAuthorize(code string) (authorizeData *osin.AuthorizeData, err error) {
+func (reciever *Storage) LoadAuthorize(code string) (authorizeData *osin.AuthorizeData, err error) {
 	params := &dynamodb.GetItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
 			"code": {
@@ -330,10 +335,10 @@ func (self *Storage) LoadAuthorize(code string) (authorizeData *osin.AuthorizeDa
 			},
 		},
 		ProjectionExpression: aws.String("json"),
-		TableName:            aws.String(self.config.AuthorizeTable),
+		TableName:            aws.String(reciever.config.AuthorizeTable),
 	}
 
-	resp, err := self.db.GetItem(params)
+	resp, err := reciever.db.GetItem(params)
 	if err != nil {
 		return nil, err
 	}
@@ -358,17 +363,17 @@ func (self *Storage) LoadAuthorize(code string) (authorizeData *osin.AuthorizeDa
 }
 
 // RemoveAuthorize revokes or deletes the authorization code.
-func (self *Storage) RemoveAuthorize(code string) error {
+func (reciever *Storage) RemoveAuthorize(code string) error {
 	params := &dynamodb.DeleteItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
 			"code": {
 				S: aws.String(code),
 			},
 		},
-		TableName: aws.String(self.config.AuthorizeTable),
+		TableName: aws.String(reciever.config.AuthorizeTable),
 	}
 
-	if _, err := self.db.DeleteItem(params); err != nil {
+	if _, err := reciever.db.DeleteItem(params); err != nil {
 		return err
 	}
 
@@ -376,7 +381,7 @@ func (self *Storage) RemoveAuthorize(code string) error {
 }
 
 // SaveAccess writes AccessData.
-func (self *Storage) SaveAccess(accessData *osin.AccessData) error {
+func (reciever *Storage) SaveAccess(accessData *osin.AccessData) error {
 	data, err := json.Marshal(accessData)
 	if err != nil {
 		return err
@@ -397,15 +402,15 @@ func (self *Storage) SaveAccess(accessData *osin.AccessData) error {
 	}
 	params := &dynamodb.PutItemInput{
 		Item:      items,
-		TableName: aws.String(self.config.AccessTable),
+		TableName: aws.String(reciever.config.AccessTable),
 	}
 
-	if _, err := self.db.PutItem(params); err != nil {
+	if _, err := reciever.db.PutItem(params); err != nil {
 		return err
 	}
 
 	if accessData.RefreshToken != "" {
-		return self.SaveRefresh(accessData)
+		return reciever.SaveRefresh(accessData)
 	}
 
 	return nil
@@ -413,7 +418,7 @@ func (self *Storage) SaveAccess(accessData *osin.AccessData) error {
 
 // LoadAccess retrieves access data by token. Client information is loaded together.
 // Can return error if expired.
-func (self *Storage) LoadAccess(token string) (accessData *osin.AccessData, err error) {
+func (reciever *Storage) LoadAccess(token string) (accessData *osin.AccessData, err error) {
 	params := &dynamodb.GetItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
 			"token": {
@@ -421,10 +426,10 @@ func (self *Storage) LoadAccess(token string) (accessData *osin.AccessData, err 
 			},
 		},
 		ProjectionExpression: aws.String("json"),
-		TableName:            aws.String(self.config.AccessTable),
+		TableName:            aws.String(reciever.config.AccessTable),
 	}
 
-	resp, err := self.db.GetItem(params)
+	resp, err := reciever.db.GetItem(params)
 	if err != nil {
 		return nil, err
 	}
@@ -435,8 +440,8 @@ func (self *Storage) LoadAccess(token string) (accessData *osin.AccessData, err 
 
 	accessData = &osin.AccessData{}
 	accessData.Client = &osin.DefaultClient{}
-	if self.config.CreateUserData != nil {
-		accessData.UserData = self.config.CreateUserData()
+	if reciever.config.CreateUserData != nil {
+		accessData.UserData = reciever.config.CreateUserData()
 	}
 	data := resp.Item["json"].S
 	err = json.Unmarshal([]byte(*data), &accessData)
@@ -450,17 +455,17 @@ func (self *Storage) LoadAccess(token string) (accessData *osin.AccessData, err 
 }
 
 // RemoveAccess revokes or deletes an AccessData.
-func (self *Storage) RemoveAccess(token string) error {
+func (reciever *Storage) RemoveAccess(token string) error {
 	params := &dynamodb.DeleteItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
 			"token": {
 				S: aws.String(token),
 			},
 		},
-		TableName: aws.String(self.config.AccessTable),
+		TableName: aws.String(reciever.config.AccessTable),
 	}
 
-	if _, err := self.db.DeleteItem(params); err != nil {
+	if _, err := reciever.db.DeleteItem(params); err != nil {
 		return err
 	}
 
@@ -471,7 +476,7 @@ func (self *Storage) RemoveAccess(token string) error {
 // This method is not a part of interface and as so, it's never used in osin flow.
 // This method is used internally by SaveAccess(accessData *osin.AccessData)
 // and can be usefull for testing
-func (self *Storage) SaveRefresh(accessData *osin.AccessData) error {
+func (reciever *Storage) SaveRefresh(accessData *osin.AccessData) error {
 	data, err := json.Marshal(accessData)
 	if err != nil {
 		return err
@@ -492,10 +497,10 @@ func (self *Storage) SaveRefresh(accessData *osin.AccessData) error {
 	}
 	params := &dynamodb.PutItemInput{
 		Item:      items,
-		TableName: aws.String(self.config.RefreshTable),
+		TableName: aws.String(reciever.config.RefreshTable),
 	}
 
-	if _, err := self.db.PutItem(params); err != nil {
+	if _, err := reciever.db.PutItem(params); err != nil {
 		return err
 	}
 
@@ -504,7 +509,7 @@ func (self *Storage) SaveRefresh(accessData *osin.AccessData) error {
 
 // LoadRefresh retrieves refresh AccessData. Client information is loaded together.
 // Can return error if expired.
-func (self *Storage) LoadRefresh(token string) (accessData *osin.AccessData, err error) {
+func (reciever *Storage) LoadRefresh(token string) (accessData *osin.AccessData, err error) {
 	params := &dynamodb.GetItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
 			"token": {
@@ -512,10 +517,10 @@ func (self *Storage) LoadRefresh(token string) (accessData *osin.AccessData, err
 			},
 		},
 		ProjectionExpression: aws.String("json"),
-		TableName:            aws.String(self.config.RefreshTable),
+		TableName:            aws.String(reciever.config.RefreshTable),
 	}
 
-	resp, err := self.db.GetItem(params)
+	resp, err := reciever.db.GetItem(params)
 	if err != nil {
 		return nil, err
 	}
@@ -538,9 +543,9 @@ func (self *Storage) LoadRefresh(token string) (accessData *osin.AccessData, err
 }
 
 // RemoveRefresh revokes or deletes refresh AccessData.
-func (self *Storage) RemoveRefresh(token string) error {
+func (reciever *Storage) RemoveRefresh(token string) error {
 	params := &dynamodb.DeleteItemInput{
-		TableName: aws.String(self.config.RefreshTable),
+		TableName: aws.String(reciever.config.RefreshTable),
 		Key: map[string]*dynamodb.AttributeValue{
 			"token": {
 				S: aws.String(token),
@@ -548,7 +553,7 @@ func (self *Storage) RemoveRefresh(token string) error {
 		},
 	}
 
-	_, err := self.db.DeleteItem(params)
+	_, err := reciever.db.DeleteItem(params)
 	if err != nil {
 		return err
 	}
