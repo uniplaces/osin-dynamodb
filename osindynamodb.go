@@ -71,7 +71,7 @@ type UserData interface {
 // This is not a part of interface but can be useful for initiating basic schema and for tests
 func (receiver *Storage) CreateSchema() error {
 	createParams := []*dynamodb.CreateTableInput{
-		&dynamodb.CreateTableInput{
+		{
 			TableName: aws.String(receiver.config.AccessTable),
 			AttributeDefinitions: []*dynamodb.AttributeDefinition{
 				{
@@ -90,7 +90,7 @@ func (receiver *Storage) CreateSchema() error {
 				WriteCapacityUnits: aws.Int64(1),
 			},
 		},
-		&dynamodb.CreateTableInput{
+		{
 			TableName: aws.String(receiver.config.AuthorizeTable),
 			AttributeDefinitions: []*dynamodb.AttributeDefinition{
 				{
@@ -109,7 +109,7 @@ func (receiver *Storage) CreateSchema() error {
 				WriteCapacityUnits: aws.Int64(1),
 			},
 		},
-		&dynamodb.CreateTableInput{
+		{
 			TableName: aws.String(receiver.config.ClientTable),
 			AttributeDefinitions: []*dynamodb.AttributeDefinition{
 				{
@@ -128,7 +128,7 @@ func (receiver *Storage) CreateSchema() error {
 				WriteCapacityUnits: aws.Int64(1),
 			},
 		},
-		&dynamodb.CreateTableInput{
+		{
 			TableName: aws.String(receiver.config.RefreshTable),
 			AttributeDefinitions: []*dynamodb.AttributeDefinition{
 				{
