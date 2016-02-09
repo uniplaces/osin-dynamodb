@@ -2,12 +2,13 @@ package osindynamodb
 
 import (
 	"encoding/json"
+	"testing"
+	"time"
+
 	"github.com/RangelReale/osin"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 func TestSchema(t *testing.T) {

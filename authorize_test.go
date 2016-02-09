@@ -1,12 +1,13 @@
 package osindynamodb
 
 import (
-	"github.com/RangelReale/osin"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/url"
 	"testing"
 	"time"
+
+	"github.com/RangelReale/osin"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAuthorizeCode(t *testing.T) {

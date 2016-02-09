@@ -3,10 +3,11 @@ package osindynamodb
 import (
 	"encoding/json"
 	"errors"
+	"time"
+
 	"github.com/RangelReale/osin"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"time"
 )
 
 var (
