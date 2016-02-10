@@ -1,10 +1,8 @@
-hash: 46877d32cdfa9878949abb1c4cb40e4ec38db672b809e4e3a16848f83bbd7828
-updated: 2016-02-10T12:50:02.501194976Z
+hash: 091073d8731ccf3e2870aa68ef470768c35be4444d72f94545624c512d76c33e
+updated: 2016-02-10T14:46:38.423494321Z
 imports:
 - name: github.com/aws/aws-sdk-go
   version: 0d8e5fdff6a7f73e2c8b84c02330c3c030650b82
-  subpackages:
-  - service/dynamodb
 - name: github.com/davecgh/go-spew
   version: 2df174808ee097f90d259e432cc04442cf60be21
   subpackages:
