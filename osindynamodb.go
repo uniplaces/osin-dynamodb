@@ -383,6 +383,11 @@ func (receiver *Storage) RemoveAuthorize(code string) error {
 
 // SaveAccess writes AccessData.
 func (receiver *Storage) SaveAccess(accessData *osin.AccessData) error {
+	// @issue https://github.com/RangelReale/osin/issues/47
+	if accessData.AccessData != nil && accessData.AccessData.AccessData != nil {
+		accessData.AccessData.AccessData = nil
+	}
+
 	data, err := json.Marshal(accessData)
 	if err != nil {
 		return err
@@ -443,6 +448,9 @@ func (receiver *Storage) LoadAccess(token string) (accessData *osin.AccessData, 
 	accessData.Client = &osin.DefaultClient{}
 	accessData.AccessData = &osin.AccessData{
 		Client: &osin.DefaultClient{},
+		AuthorizeData: &osin.AuthorizeData{
+			Client: &osin.DefaultClient{},
+		},
 	}
 	accessData.AuthorizeData = &osin.AuthorizeData{
 		Client: &osin.DefaultClient{},
@@ -484,6 +492,11 @@ func (receiver *Storage) RemoveAccess(token string) error {
 // This method is used internally by SaveAccess(accessData *osin.AccessData)
 // and can be usefull for testing
 func (receiver *Storage) SaveRefresh(accessData *osin.AccessData) error {
+	// @issue https://github.com/RangelReale/osin/issues/47
+	if accessData.AccessData != nil && accessData.AccessData.AccessData != nil {
+		accessData.AccessData.AccessData = nil
+	}
+
 	data, err := json.Marshal(accessData)
 	if err != nil {
 		return err
@@ -540,6 +553,9 @@ func (receiver *Storage) LoadRefresh(token string) (accessData *osin.AccessData,
 	accessData.Client = &osin.DefaultClient{}
 	accessData.AccessData = &osin.AccessData{
 		Client: &osin.DefaultClient{},
+		AuthorizeData: &osin.AuthorizeData{
+			Client: &osin.DefaultClient{},
+		},
 	}
 	accessData.AuthorizeData = &osin.AuthorizeData{
 		Client: &osin.DefaultClient{},
