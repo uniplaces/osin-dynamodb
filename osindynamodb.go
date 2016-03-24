@@ -441,6 +441,12 @@ func (receiver *Storage) LoadAccess(token string) (accessData *osin.AccessData, 
 
 	accessData = &osin.AccessData{}
 	accessData.Client = &osin.DefaultClient{}
+	if accessData.AccessData != nil {
+		accessData.AccessData.Client = &osin.DefaultClient{}
+	}
+	if accessData.AuthorizeData != nil {
+		accessData.AuthorizeData.Client = &osin.DefaultClient{}
+	}
 	if receiver.config.CreateUserData != nil {
 		accessData.UserData = receiver.config.CreateUserData()
 	}
@@ -532,6 +538,12 @@ func (receiver *Storage) LoadRefresh(token string) (accessData *osin.AccessData,
 
 	accessData = &osin.AccessData{}
 	accessData.Client = &osin.DefaultClient{}
+	if accessData.AccessData != nil {
+		accessData.AccessData.Client = &osin.DefaultClient{}
+	}
+	if accessData.AuthorizeData != nil {
+		accessData.AuthorizeData.Client = &osin.DefaultClient{}
+	}
 	data := resp.Item["json"].S
 	err = json.Unmarshal([]byte(*data), &accessData)
 	if err != nil {
