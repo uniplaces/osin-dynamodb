@@ -7,6 +7,8 @@ dependencies:
     - go get -u github.com/axw/gocov/gocov
     - go get -u gopkg.in/matm/v1/gocov-html
     - go get -u github.com/mattn/goveralls
+    - go get github.com/onsi/ginkgo/ginkgo
+    - go get github.com/modocache/gover
 
 test:
   pre:
@@ -16,4 +18,6 @@ test:
     - (set -o pipefail; go test -v -race ./... | tee /dev/tty | go-junit-report > $CIRCLE_TEST_REPORTS/golang/junit.xml)
     - gocov test -covermode=atomic ./... > $CIRCLE_ARTIFACTS/coverage.json
     - gocov-html $CIRCLE_ARTIFACTS/coverage.json > $CIRCLE_ARTIFACTS/coverage.html
+    - ginkgo -r  -cover  -coverpkg=./... --trace --race
+    - gover ...
     - goveralls -gocovdata=$CIRCLE_ARTIFACTS/coverage.json -service=circle-ci -repotoken=$COVERALLS_TOKEN
