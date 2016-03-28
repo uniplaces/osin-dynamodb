@@ -490,7 +490,7 @@ func (receiver *Storage) RemoveAccess(token string) error {
 // SaveRefresh writes AccessData for refresh token
 // This method is not a part of interface and as so, it's never used in osin flow.
 // This method is used internally by SaveAccess(accessData *osin.AccessData)
-// and can be usefull for testing
+// and can be useful for testing
 func (receiver *Storage) SaveRefresh(accessData *osin.AccessData) error {
 	// @issue https://github.com/RangelReale/osin/issues/47
 	if accessData.AccessData != nil && accessData.AccessData.AccessData != nil {
@@ -559,6 +559,9 @@ func (receiver *Storage) LoadRefresh(token string) (accessData *osin.AccessData,
 	}
 	accessData.AuthorizeData = &osin.AuthorizeData{
 		Client: &osin.DefaultClient{},
+	}
+	if receiver.config.CreateUserData != nil {
+		accessData.UserData = receiver.config.CreateUserData()
 	}
 	data := resp.Item["json"].S
 	err = json.Unmarshal([]byte(*data), &accessData)
