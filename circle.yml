@@ -20,4 +20,4 @@ test:
     - gocov-html $CIRCLE_ARTIFACTS/coverage.json > $CIRCLE_ARTIFACTS/coverage.html
     - ginkgo -r  -cover  -coverpkg=./... --trace --race
     - gover ...
-    - goveralls -gocovdata=$CIRCLE_ARTIFACTS/coverage.json -service=circle-ci -repotoken=$COVERALLS_TOKEN
+    - goveralls -coverprofile=gover.coverprofile -service=circle-ci -repotoken=$COVERALLS_TOKEN
