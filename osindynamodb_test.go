@@ -142,9 +142,14 @@ func TestAccess(t *testing.T) {
 	got, err = storage.LoadAccess(accessData.AccessToken)
 	assert.Equal(t, ErrTokenExpired, err)
 	assert.Nil(t, got)
+	// refresh token doesn't expire
 	got, err = storage.LoadRefresh(accessData.RefreshToken)
-	assert.Equal(t, ErrTokenExpired, err)
-	assert.Nil(t, got)
+	assert.Nil(t, err, "%s", err)
+	gotJSON, err = json.Marshal(got)
+	assert.Nil(t, err, "%s", err)
+	expectedJSON, err = json.Marshal(accessData)
+	assert.Nil(t, err, "%s", err)
+	assert.JSONEq(t, string(expectedJSON), string(gotJSON))
 }
 
 func TestRefresh(t *testing.T) {
@@ -199,9 +204,14 @@ func TestRefresh(t *testing.T) {
 	err = storage.SaveRefresh(accessData)
 	assert.Nil(t, err, "%s", err)
 
+	// refresh token doesn't expire
 	got, err = storage.LoadRefresh(accessData.RefreshToken)
-	assert.Equal(t, ErrTokenExpired, err)
-	assert.Nil(t, got)
+	assert.Nil(t, err, "%s", err)
+	gotJSON, err = json.Marshal(got)
+	assert.Nil(t, err, "%s", err)
+	expectedJSON, err = json.Marshal(accessData)
+	assert.Nil(t, err, "%s", err)
+	assert.JSONEq(t, string(expectedJSON), string(gotJSON))
 }
 
 func TestAuthorize(t *testing.T) {

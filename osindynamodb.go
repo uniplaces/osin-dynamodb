@@ -528,7 +528,7 @@ func (receiver *Storage) SaveRefresh(accessData *osin.AccessData) error {
 }
 
 // LoadRefresh retrieves refresh AccessData. Client information is loaded together.
-// Can return error if expired.
+// Refresh token doesn't expire.
 func (receiver *Storage) LoadRefresh(token string) (accessData *osin.AccessData, err error) {
 	params := &dynamodb.GetItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
@@ -564,9 +564,6 @@ func (receiver *Storage) LoadRefresh(token string) (accessData *osin.AccessData,
 	err = json.Unmarshal([]byte(*data), &accessData)
 	if err != nil {
 		return nil, err
-	}
-	if accessData.ExpireAt().Before(time.Now()) {
-		return nil, ErrTokenExpired
 	}
 	return accessData, nil
 }
