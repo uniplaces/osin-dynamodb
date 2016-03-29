@@ -1,7 +1,7 @@
 dependencies:
   pre:
     - "curl -s -L http://dynamodb-local.s3-website-us-west-2.amazonaws.com/dynamodb_local_latest.tar.gz | tar xz"
-    - "java -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -sharedDb -inMemory -port 4567":
+    - "java -Xmx256M -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -sharedDb -inMemory -port 4567":
         background: true
     - go get -u github.com/jstemmer/go-junit-report
     - go get -u github.com/axw/gocov/gocov
