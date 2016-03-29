@@ -7,17 +7,13 @@ dependencies:
     - go get -u github.com/axw/gocov/gocov
     - go get -u gopkg.in/matm/v1/gocov-html
     - go get -u github.com/mattn/goveralls
-    - go get github.com/onsi/ginkgo/ginkgo
-    - go get github.com/modocache/gover
 
 test:
   pre:
     - mkdir -p $CIRCLE_TEST_REPORTS/golang
 
   override:
-    - (set -o pipefail; go test -v -race ./... | tee /dev/tty | go-junit-report > $CIRCLE_TEST_REPORTS/golang/junit.xml)
+    - (set -o pipefail; go test -v -race -covermode=atomic -coverprofile=profile.cov ./... | tee /dev/tty | go-junit-report > $CIRCLE_TEST_REPORTS/golang/junit.xml)
+    - goveralls -coverprofile=profile.cov -service=circle-ci -repotoken=$COVERALLS_TOKEN
     - gocov test -covermode=atomic ./... > $CIRCLE_ARTIFACTS/coverage.json
     - gocov-html $CIRCLE_ARTIFACTS/coverage.json > $CIRCLE_ARTIFACTS/coverage.html
-    - ginkgo -r  -cover  -coverpkg=./... --trace --race
-    - gover .
-    - goveralls -coverprofile=gover.coverprofile -service=circle-ci -repotoken=$COVERALLS_TOKEN
