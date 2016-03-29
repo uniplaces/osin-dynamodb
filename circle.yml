@@ -19,5 +19,5 @@ test:
     - gocov test -covermode=atomic ./... > $CIRCLE_ARTIFACTS/coverage.json
     - gocov-html $CIRCLE_ARTIFACTS/coverage.json > $CIRCLE_ARTIFACTS/coverage.html
     - ginkgo -r  -cover  -coverpkg=./... --trace --race
-    - gover ...
+    - gover .
     - goveralls -coverprofile=gover.coverprofile -service=circle-ci -repotoken=$COVERALLS_TOKEN
