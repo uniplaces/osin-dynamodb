@@ -12,13 +12,13 @@ import (
 
 var (
 	// ErrClientNotFound is returned by GetClient if client was not found
-	ErrClientNotFound = errors.New("Client not found")
+	ErrClientNotFound = osin.ErrNotFound
 	// ErrAuthorizeNotFound is returned by LoadAuthorize if authorization code was not found
-	ErrAuthorizeNotFound = errors.New("Authorize not found")
+	ErrAuthorizeNotFound = osin.ErrNotFound
 	// ErrAccessNotFound is returned by LoadAccess if access token was not found
-	ErrAccessNotFound = errors.New("Access not found")
+	ErrAccessNotFound = osin.ErrNotFound
 	// ErrRefreshNotFound is returned by LoadRefresh if refresh token was not found
-	ErrRefreshNotFound = errors.New("Refresh not found")
+	ErrRefreshNotFound = osin.ErrNotFound
 	// ErrTokenExpired is returned by LoadAccess, LoadAuthorize or LoadRefresh if token or code expired
 	ErrTokenExpired = errors.New("Token expired")
 )
